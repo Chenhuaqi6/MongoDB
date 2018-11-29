@@ -1,0 +1,227 @@
+1.创建集合
+    acct: 账户集合
+       acct_no:账号
+       acct_name:户名
+       acct_type:类型
+       balanc:余额
+1)插入单笔
+db.acct.insert({
+    acct_no:"622345111111",
+    acct_name:"Jerry",
+    acct_type:1,
+    balanc:1234.56
+})
+
+
+2)插入多笔
+db.acct.insert([
+    {acct_no:"622345222222",acct_name:"Tom",acct_type:1,balanc:2000},
+
+    {acct_no:"622345333333",acct_name:"Dokas",acct_type:2,balanc:5000}
+])
+
+3)save插入
+db.acct.save({acct_no:"6223454444",acct_name:"Emma",acct_type:2,balanc:10000})
+
+查找小于5000元的账户
+db.acct.find({balanc:{$lt:5000}})
+
+修改
+db.acct.update({acct_name:"Jerry"},{$set:{balanc:"234.56"}})
+
+乘法修改器
+db.acct.update({acct_name:"Emma"},{$mul:{balanc:1.02}})
+
+5)上次课程内容
+    查找:distinct 去重
+        eg:db.acct.distinct("acct_type")
+        
+        limit  显示前n笔数据
+        eg: db.acct.find().limit(2)
+        
+        count  统计笔数
+        eg:db.acct.find({acct_type:1}).count()
+        
+        sort 排序
+        eg:db.acct.find().sort({balanc:-1})
+
+    删除
+        db.collection.remove(query,justOne)
+        query:筛选条件
+        justOne:是否删除一条,布尔值
+
+        db.acct.remove({acct_no:"622345444444"},true)
+    
+    修改:
+        db.collection.update(query,update,upsert)
+        query:筛选条件
+        update:修改内容
+        upsert:查询不到数据时,是否执行插入
+        mult:是否修改多条
+
+        db.acct.update({acct_no:"622345333333"},
+        {$set:{
+            balanc:0,
+            acct_type:2,
+            close_date:new Date()
+        }},
+        false,false)
+
+$set  修改域
+$unset:删除域
+$rename 修改域名称
+$inc: 加法修改器
+$min:用值的值进行比较,取最小的
+$max:....
+$push/pushAll :向数组添加值
+$pull/pullAll 从数组取出值
+
+$each: 对多个值逐一取出,执行操作
+$addToSet:向数组添加数据,不和已有数据重复
+
+
+时间类型
+    -计算机时间表示法 :整数
+     表示从1970-01-01 00:00:00到当前时间点的描述
+    -Date()  取当前系统时间,字符串
+    -new Date  生成当前时间,对象
+    -ISODate().toLocaleString()  生成当前时间,对象
+
+null类型: 字段不存在,值没有被设置
+
+内嵌文档
+    -某个域的值还是一个文档
+    -引用方式: outer_doc.inner_doc.filed_name
+
+索引:
+    -概念:键值和所在的文档位置的对照关系
+    -作用: 提高数据查询效率(通过避免全表扫描)
+    -索引的使用: 
+        -创建: createIndex(key,option)
+        -查看索引: db.collection.getIndexes()
+        删除索引:db.collection.dropIndex(name)
+        唯一索引:
+            db.collection.createIndex({acct_no},{unique})
+聚合: aggregate
+    $group:分组统计
+    $sum
+    $max
+    $min
+    $avg
+    $project:从集合查询指定的域
+    $match:数据过滤
+    $sort:
+
+    管道聚合: 一个操作处理完成后,将结果送入下一个操作处理
+
+        db.acct.aggregate({$match:{acct_type:1}},{$sort:{acct_no:-1}})
+
+
+-------------------------------
+1.固定集合
+    -有着固定的大小的集合(大小,笔数)
+    -我们可以把固定集合想像成一个环形队列
+    -当空间用完后,再插入的数据会覆盖头部的数据
+    -应用:
+        临时缓存
+        日志
+    -优点
+        插入速度块,顺序查找速度块
+        能够淘汰早期数据
+        能够控制集合的大小
+    -创建固定集合
+        -语法:db.createCollection(collection,{capped:true,size:10000,max:3})
+        collection :集合名称
+        capped:表示创建固定集合
+        size:集合的大小,单位字节
+        max:最多存放多少文档
+            -示例:
+                第一步:创建日志结合
+                db.createCollection("log",{capped:true,size:10000,max:3})
+
+                第二步:插入3笔数据(前三笔插入成功)
+                db.log.insert({oper_date:new Date(),user_id:"Tom",oper:"insert"})
+
+                第三步:插入第四笔(覆盖一笔之前的数据)
+2.文件存储
+    1.文件存储方式
+        -数据库中只存储文件路径,文件存储某个目录下
+        优点:占用数据库空间较少
+        缺点:存储路径和实际路径不一致时,文件丢失
+        -将整个文件数据库存入数据库
+         优点:数据库和文件绑定存在
+         缺点:占用较多数据库空间
+    GriFs
+        -GriFs: 把文件存储到Mongo集合中的一种方式
+        -通常用来存储二进制文件,如图片,音乐,视频
+        -存储原理:将文件分解成多个小的片段(chunk)存储
+            一个片段大小一般为256k
+            每个片段作为一个文档存储在chunks集合中
+        -GriFs用俩个集合来存储文件
+            -fs.file:存储文件的元信息
+            -fs.chunks:存储文件的实际内容
+        -优点:能够存储很大的文件
+             在分布式环境下,能够自动同步文件元数据
+             仅加载文件部分内容即可读取,不必将整个文件加载到内存中
+        -缺点:
+            读取效率比从磁盘低,所以最好存储16M以上的文件
+            只能整体替换,无法局部更新
+    
+        示例:
+            第一步:准备二进制文件
+                将一个tar.gz文件复制为tmp.tar.gz
+            
+            第二部:将文件存入mongodb
+
+            mongofiles -d gridfs put tmp.tar.gz
+            第三步:
+                登录mongo 进入gridfs数据库
+                检查是否保存(在fs.file集合下查看文件名)
+            第四部:删除本地文件
+                rm tmp.tar.gz
+            第五步:
+                从数据库 提取文件
+                mongofiles -d gridfs get tmp.tar.gz
+                提取成功后,该文件被存储到本地目录
+            参数: -d 制定存取的数据库
+                 put 存文件
+                 get 取文件
+                 tmp.tar.gz 文件路径
+
+3.pymongo: 使用Python 操作MongoDB
+   1.安装
+    pip3 install pymongo
+
+    2.pymongo访问数据库的步骤
+        1.创建mongodb的连接对象
+        2.获取数据库对象
+        3.获取集合对象
+        4.执行操作语句
+        5.关闭连接
+        示例1:显示数据库服务器上所有的库
+
+        示例3:插入操作
+        insert()  插入一条或多条
+        insert_one()  插入一条
+        insert_many() 插入多条
+        save()   如果id存在则覆盖 不存在则插入
+
+    修改
+     -update(query,update,upsert=False,multi=False)
+     query: 筛选条件
+     update:修改内容
+     upsert:是否执行插入
+     multi:是否修改多行
+    
+    删除:remove
+        -remove(query,multi = True)
+          query:筛选条件
+          multi:是否删除多行  True:是  False:否
+
+    示例:利用pymongo存取文件
+    -bson.binary:可以将字符串转为二进制存储
+
+    第一步:查找一张jpg格式图片
+        cd~
+        find . -name *.jpg
+        将图片复制到用户主目录:cp 文件

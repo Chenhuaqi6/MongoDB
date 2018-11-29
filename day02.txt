@@ -1,0 +1,336 @@
+查找操作:
+    mysql :select ... from table where...
+
+    mongo: db.collection.find(query(过滤条件),field(域名))
+
+    查找集合中所有内容:
+        db.collection.find() --> select * from table
+    
+    find(query,field)
+    功能:查找所有符合条件的数据
+    参数:query:表示筛选条件,是一个键值对文档,默认表示查找所有内容
+   
+        e.g. 查找年龄等于18的文档
+        db.class0.find({age:18})
+
+        field : 表示查找哪个域,是一个文档键值对,用0表示不查找的域,1表示查找的域
+
+
+                > db.class0.find({age:18},{_id:0,sex:0})
+                { "name" : "Joy", "age" : 18 }
+                { "name" : "Abby", "age" : 18 }
+                { "name" : "Jame", "age" : 18 }
+                > db.class0.find({age:18},{name:1})
+                { "_id" : ObjectId("5bf939f14e06a8a82d2420d2"), "name" : "Joy" }
+                { "_id" : 1, "name" : "Abby" }
+                { "_id" : ObjectId("5bf93b9b4e06a8a82d2420d5"), "name" : "Jame" }
+                > db.class0.find({age:18},{_id:0,name:1})
+                { "name" : "Joy" }
+                { "name" : "Abby" }
+                { "name" : "Jame" }
+            想查看哪个域就设置为1,其他域自动为0,某一个域设置为0,其他域自动为1, _id特殊 不相看必须设置为0 ,不能出现普通域为1又为0
+
+    findOne(query,field)
+    功能:查找第一条符合条件的文档
+    功能:同find
+
+    > db.class0.findOne({age:18},{_id:0})
+    { "name" : "Joy", "age" : 18, "sex" : "m" }
+
+
+query的筛选功能:
+    操作符:使用$符号注明的一个有特殊意义的字符串,用以表达丰富的含义  比如 $lt 表示小于
+
+    比较操作符:
+
+        $eq 等于 ==
+        > db.class0.find({age:{$eq:18}},{_id:0})
+        { "name" : "Joy", "age" : 18, "sex" : "m" }
+        { "name" : "Abby", "age" : 18, "sex" : "w" }
+        { "name" : "Jame", "age" : 18, "sex" : "m" }
+
+        $lt 小于 <
+        > db.class0.find({age:{$lt:18}},{_id:0})
+        { "name" : "Lily", "age" : 17, "sex" : "w" }
+        { "name" : "Levi", "age" : 17, "sex" : "m" }
+        { "name" : "Lily", "age" : 17, "sex" : "w" }
+
+        #姓名小于Lily (字符串也可以比较大小)
+        > db.class0.find({name:{$lt:"Lily"}},{_id:0})
+        { "name" : "Joy", "age" : 18, "sex" : "m" }
+        { "name" : "Levi", "age" : 17, "sex" : "m" }
+        { "name" : "Abby", "age" : 18, "sex" : "w" }
+        { "name" : "Jame", "age" : 18, "sex" : "m" }
+
+        $gt     大于        >
+
+        $lte    小于等于    <=
+
+        $gte    大于等于    >=
+
+        $ne     不等于      !=
+
+        用逗号分割出多个条件
+        > db.class0.find({age:{$gte:18,$lte:20}},{_id:0})
+        { "name" : "Joy", "age" : 18, "sex" : "m" }
+        { "name" : "Abby", "age" : 18, "sex" : "w" }
+        { "name" : "Tom", "age" : 19, "sex" : "m" }
+        { "name" : "Jame", "age" : 18, "sex" : "m" }
+        { "name" : "Davil", "age" : 19, "sex" : "w" }
+
+        $in  包含关系
+
+            e.g.  年龄为14.16.18的
+                db.class0.find({age:{$in:[14,16,18]}},{_id:0})
+                { "name" : "Joy", "age" : 18, "sex" : "m" }
+                { "name" : "Abby", "age" : 18, "sex" : "w" }
+                { "name" : "Jame", "age" : 18, "sex" : "m" }
+
+        $nin  不包含
+            
+          e.g.年龄不为14.16.18的
+            > db.class0.find({age:{$nin:[14,16,18]}},{_id:0})
+            { "name" : "Lily", "age" : 17, "sex" : "w" }
+            { "name" : "Levi", "age" : 17, "sex" : "m" }
+            { "name" : "Tom", "age" : 19, "sex" : "m" }
+            { "name" : "Lily", "age" : 17, "sex" : "w" }
+            { "name" : "Davil", "age" : 19, "sex" : "w" }
+
+逻辑操作符:
+    逻辑与:
+        1.在query中多个逗号隔开的键值对即逻辑与关系
+        e.g.年龄18 并且 性别为女
+            > db.class0.find({age:18,sex:"w"},{_id:0})
+            { "name" : "Abby", "age" : 18, "sex" : "w" }
+
+        2.$and 表示逻辑与
+            > db.class0.find({$and:[{age:18},{sex:"w"}]},{_id:0})
+            { "name" : "Abby", "age" : 18, "sex" : "w" }
+    
+    逻辑或: $or
+        e.g. 年龄大于17 或者性别为女的
+        > db.class0.find({$or:[{age:{$gt:17}},{sex:"w"}]},{_id:0})
+        { "name" : "Lily", "age" : 17, "sex" : "w" }
+        { "name" : "Joy", "age" : 18, "sex" : "m" }
+        { "name" : "Abby", "age" : 18, "sex" : "w" }
+        { "name" : "Tom", "age" : 19, "sex" : "m" }
+        { "name" : "Jame", "age" : 18, "sex" : "m" }
+        { "name" : "Lily", "age" : 17, "sex" : "w" }
+        { "name" : "Davil", "age" : 19, "sex" : "w" }
+
+    逻辑非: $not(条件取反,作用与某个条件之前)
+        
+        年龄不等于18的
+        db.class0.find({age:{$not:{$eq:18}}},{_id:0})
+    逻辑既不也不  $nor  not(A or B)
+        年龄不为18 性别不为女
+        db.class0.find({$nor:[{age:18},{sex:"w"}]},{_id:0})
+    
+    条件混合: 
+            年龄大于18或则年龄小于17 并且性别为m
+         db.class0.find({$or:[{age:{$gt:18}},{age:{$lt:17}}],sex:"m"},{_id:0})
+
+
+数组查找
+    数组: 一组数据的有序集合,使用[]表示
+    *有序的,可以用[]取值
+    *数据类型可以不同
+
+$all 
+eg:找到既包含100又包含99的同学
+db.class1.find({score:{$all:[100,99]}},{_id:0})
+
+
+
+$size  根据数组项目查找
+e.g. 查找数组中包含3项的文档
+db.class1.find({score:{$size:3}},{_id:0})
+
+
+$slice  选择数字的查询部分 (用于field部分)
+
+eg:显示数组中的前俩项
+> db.class1.find({},{_id:0,score:{$slice:2}})
+{ "name" : "小明", "age" : 9, "score" : [ 77, 68 ] }
+{ "name" : "小红", "age" : 8, "score" : [ 90, 88 ] }
+{ "name" : "小刚", "age" : 8, "score" : [ 91, 86 ] }
+{ "name" : "小亮", "age" : 7, "score" : [ 82, 80 ] }
+
+eg:跳过第一项显示后面俩项
+> db.class1.find({},{_id:0,score:{$slice:[1,2]}})
+{ "name" : "小明", "age" : 9, "score" : [ 68, 81 ] }
+{ "name" : "小红", "age" : 8, "score" : [ 88, 77 ] }
+{ "name" : "小刚", "age" : 8, "score" : [ 86, 90 ] }
+{ "name" : "小亮", "age" : 7, "score" : [ 80, 89 ] }
+
+
+其他查找操作符:
+ $exists  判断一个域是否存在
+ eg:查找不存在sex域的文档(true表示存在,false表示不存在)
+ db.class0.find({sex:{$exists:false}},{_id:0})
+
+$mod 通过除数和余数筛选
+
+#除2余1(年龄为奇数的文档))
+db.class0.find({age:{$mod:[2,1]}},{_id:0})
+#除3余0(3的倍数)
+db.class0.find({age:{$mod:[3,0]}},{_id:0})
+
+$regex 根据正则表达式筛选
+eg: 简单的正则表达式的筛选中间带o的 
+> db.class0.find({name:{$regex:/.*o.*/}},{_id:0})
+{ "name" : "Joy", "age" : 18, "sex" : "m" }
+{ "name" : "Tom", "age" : 19, "sex" : "m" }
+
+
+$type  根据数据类型筛选
+eg: 查找age域值类型为1的"_id" : ObjectId("5bfba01a8a8797789f482c68")
+db.class1.find({age:{$type:1}},{_id:0})
+
+*类型和数据联系参加数据类型表
+*通过 www.mongodb.com -->docs查找新的操作符用法
+
+
+
+数据处理函数
+    db.collection.distinct(field)
+        功能:获取某个域的取值范围
+        eg:查看age域的取值情况
+        > db.class0.distinct("age")
+        [ 17, 18, 19 ]
+
+    pretty()
+    功能:将查询结果格式化显示
+
+    eg:格式化显示查询结果
+    db.class0.find().pretty()
+
+    
+    limit(n)
+    功能:显示查询结果的前n条
+    eg:显示查询结果的前2条
+    > db.class1.find({},{_id:0}).limit(2)
+
+    skip(n)
+    功能:跳过前n条显示后面的内容
+    eg:跳过前2条显示后面的内容
+    db.class1.find({},{_id:0}).skip(2)
+
+    count()
+    功能:统计查询结果数量
+    eg:统计年龄18的文档个数(写筛选条件)
+    db.class0.find({age:18},{_id:0}).count()
+
+    sort({filed:1/-1})
+    功能:对查找结果按照某个域的值排序 1表示升序  -1代表降序
+    eg:查找结果按照年龄升序排列
+    db.class0.find({},{_id:0,sex:0}).sort({age:1})
+        查找结果按照年龄降序排列
+    db.class0.find({},{_id:0,sex:0}).sort({age:-1})
+
+    复合排序,当年龄一样的时候按照姓名升序排列
+    db.class0.find({},{_id:0,sex:0}).sort({age:-1,name:1})
+
+    查询结果操作函数可以连续调用
+
+        *当前一个函数返回的仍然是查询结果集合,则可以继续调用函数操作
+        eg: 查找年龄最大的三个文档
+            db.class0.find({},{_id:0}).sort({age:-1}).limit(3)
+
+    可以通过序列号直接获取查询结果某一项
+    eg:获取第三个查询结果
+    db.class0.find({},{_id:0,sex:0})[2]
+
+练习:
+1.创建数据库 grade
+2.在数据库中创建集合class
+3.集合中插入若干数据,格式如下
+{name:xxx,age:xx,sex:"m",hobby:["xxx","xxx"]}
+age:7-15
+hobby:draw dance running sing football basketball computer python
+
+
+删除文档
+    mysql: delete from table where...
+    mongo: db.collection.deleteOne(query)
+
+    deleteOne(query)
+    功能:删除第一条符合条件的文档
+    参数:筛选条件 用法同find query
+
+    eg:删除第一条年龄为18的文档
+        db.class0.deleteOne({age:18})
+    
+    deleteMany(query)
+    功能:删除所有符合条件的文档
+    eg:删除所有名字以L开头的文档
+    db.class0.deleteMany({name:{$regex:/L.*/}})
+
+    *如果筛选条件为空,则删除集合中所有文档
+    db.collection.deleteMany({})
+
+    remove(query,justOne)
+    功能:删除文档
+    参数:query
+        justOne 默认为false 此时remove == deleteMany
+                设置为true  此时remove == deleteOne
+        eg:db.collection.remove({age:18},true) 删除一个年龄为18的文档
+    
+    findOneAndDelete(query)
+    功能:查找第一个符合条件的文档并删除
+    参数:query
+    返回:找到的文档
+    eg:找到不存在sex域的文档并删除
+    db.class0.findOneAndDelete({sex:{$exists:false}})
+
+    修改操作
+
+    mysql: update table set ... where...
+    mongodb: db.collection.updateOne(query,update,upsert)
+    功能:修改第一个符合条件的文档
+    参数:query 数据筛选
+        update 要修改的数据,需要配合修改操作符使用
+        upsert bool值,默认为false表示如果没有筛选到文档则不执行操作,如果设置为true则没有筛选到文档时,根据query和update插入新的文档
+    eg: 修改Jame的性别为w
+        db.class0.updateOne({name:"Jam"},{$set:{sex:"w"}})
+
+        如果没有找到Max 则upsert表示插入新文档
+        db.class0.updateOne({name:"Max"},{$set:{age:17}},{upsert:true})
+    
+    updateMany(query,update,upsert)
+    功能:修改所有符合条件的文档
+    参数:同updateOne
+    eg:修改所有年龄为17 的为19
+    db.class0.updateMany({age:17},{$set:{age:19}})
+    
+    update(query,update,upsert,multi)
+    功能:修改文档
+    参数:query update 同updateOne
+        upsert  bool值  true 表示插入新文档
+        multi  默认为false 此时同updateOne
+               设置为true  同updateMany
+
+    db.class0.update({name:"Tom"},{age:20})
+
+
+    db.class0.update({name:"Ab"},{$set:{sex:"w"}},true)
+
+    db.class0.update({sex:"w"},{$set:{age:20}},true,true)
+
+
+    findOneAndUpdate(query,update)
+    功能:查找一个文档并修改
+    参数: query  查找文档
+        update  修改内容
+    返回:修改前的文档
+    eg:查找并修改一个文档
+    db.class0.findOneAndUpdate({name:"Alex"},{$set:{age:16}})
+
+    findOneAndReplace(query,docment)
+    功能:查找一个文档并替换
+    参数:query 筛选条件
+        docment 替换的文档
+    返回:原来的文档
+
+作业:复习mongodb的增删改查
+    将三国表用mongodb
